@@ -66,14 +66,6 @@
         panY: 0
     };
 
-    const timer = {
-        started: false,
-        running: false,
-        startedAt: 0,
-        elapsed: 0,
-        handle: null
-    };
-
     function pad(value) {
         return String(value).padStart(2, '0');
     }
@@ -86,6 +78,10 @@
         return hours > 0
             ? hours + ':' + pad(minutes) + ':' + pad(seconds)
             : pad(minutes) + ':' + pad(seconds);
+    }
+
+    function isWon() {
+        return !!state && (state.phase === 'won' || state.finished === true);
     }
 
     function clamp(value, min, max) {
@@ -213,7 +209,7 @@
         const gap = cell >= 10 ? Math.min(4, Math.max(1, cell * 0.06)) : 0;
         const useRound = cell >= 26;
         const cells = state.cells;
-        const finished = state.finished;
+        const finished = isWon();
         let showText = cell >= 16;
         let fontSize = 0;
         const maxLabel = String(size * size - 1);
@@ -392,7 +388,7 @@
         }
         if (drag && drag.canPan) {
             canvas.style.cursor = 'grabbing';
-        } else if (hoverIndex >= 0 && isAdjacent(hoverIndex) && !state.finished) {
+        } else if (hoverIndex >= 0 && isAdjacent(hoverIndex) && !isWon()) {
             canvas.style.cursor = 'pointer';
         } else if (canPan()) {
             canvas.style.cursor = 'grab';
@@ -497,12 +493,12 @@
         els.moveCount.textContent = String(state.moves);
         els.sizeStat.textContent = state.size + ' × ' + state.size;
         els.sizeChip.textContent = state.size + ' × ' + state.size;
-        els.timer.textContent = formatTime(timer.elapsed);
+        els.timer.textContent = formatTime(state.elapsedMillis || 0);
     }
 
     function updateButtons() {
         const ready = !!state;
-        const finished = ready && state.finished;
+        const finished = isWon();
         els.undoBtn.disabled = !ready || finished || !state.undo;
         els.redoBtn.disabled = !ready || finished || !state.redo;
         els.shuffleBtn.disabled = !ready;
@@ -517,7 +513,7 @@
             els.statusText.textContent = '正在准备棋盘…';
             return;
         }
-        if (state.finished) {
+        if (isWon()) {
             els.statusText.textContent = '完成！所有数字都已归位';
         } else if (state.moves === 0) {
             els.statusText.textContent = cellSize() < 14 && state.size > 12
@@ -539,9 +535,6 @@
             layout.baseCell = computeBaseCell();
             centerBoard();
         }
-        if (opts.resetClock) {
-            resetTimer();
-        }
         if (opts.fit || sizeChanged) {
             fitView();
         }
@@ -550,7 +543,7 @@
         updateStatus();
         updateZoomLabel();
         updateCursor();
-        if (state.finished) {
+        if (isWon()) {
             showWin();
         } else {
             hideWin();
@@ -558,52 +551,10 @@
         requestDraw();
     }
 
-    function resetTimer() {
-        if (timer.handle) {
-            clearInterval(timer.handle);
-            timer.handle = null;
-        }
-        timer.started = false;
-        timer.running = false;
-        timer.startedAt = 0;
-        timer.elapsed = 0;
-        els.timer.textContent = formatTime(0);
-    }
-
-    function startTimer() {
-        if (!state || state.finished || timer.running) return;
-        if (!timer.started) {
-            timer.started = true;
-            timer.startedAt = performance.now() - timer.elapsed;
-        }
-        timer.running = true;
-        if (timer.handle) clearInterval(timer.handle);
-        timer.handle = setInterval(tickTimer, 250);
-        tickTimer();
-    }
-
-    function tickTimer() {
-        if (!timer.running) return;
-        timer.elapsed = performance.now() - timer.startedAt;
-        els.timer.textContent = formatTime(timer.elapsed);
-    }
-
-    function stopTimer() {
-        if (!timer.running) return;
-        timer.elapsed = performance.now() - timer.startedAt;
-        timer.running = false;
-        if (timer.handle) {
-            clearInterval(timer.handle);
-            timer.handle = null;
-        }
-        els.timer.textContent = formatTime(timer.elapsed);
-    }
-
     function showWin() {
         if (!state || winVisible) return;
-        stopTimer();
         winVisible = true;
-        els.winTime.textContent = formatTime(timer.elapsed);
+        els.winTime.textContent = formatTime(state.elapsedMillis || 0);
         els.winMoves.textContent = String(state.moves);
         els.winOverlay.classList.remove('hidden');
         updateButtons();
@@ -614,42 +565,42 @@
         els.winOverlay.classList.add('hidden');
     }
 
+    function updateTimer(elapsedMillis) {
+        if (!state) return;
+        state.elapsedMillis = elapsedMillis;
+        els.timer.textContent = formatTime(elapsedMillis);
+    }
+
     function sendMoveCell(index) {
-        if (!state || state.finished) return;
+        if (!state || isWon()) return;
         if (state.cells[index] === 0) return;
         if (!isAdjacent(index)) {
             showToast('只能移动空白格旁边的数字');
             return;
         }
         const size = state.size;
-        const beforeMoves = state.moves;
         const data = invoke(function (api) {
             return api.move((index % size) + 1, Math.floor(index / size) + 1);
         });
-        if (!data) return;
-        if (data.moves > beforeMoves && !timer.started) startTimer();
-        applyState(data);
+        if (data) applyState(data);
     }
 
     function sendDirection(direction) {
-        if (!state || state.finished) return;
-        const beforeMoves = state.moves;
+        if (!state || isWon()) return;
         const data = invoke(function (api) {
             return api.moveDirection(direction);
         });
-        if (!data) return;
-        if (data.moves > beforeMoves && !timer.started) startTimer();
-        applyState(data);
+        if (data) applyState(data);
     }
 
     function undo() {
-        if (!state || state.finished || !state.undo) return;
+        if (!state || isWon() || !state.undo) return;
         const data = invoke(function (api) { return api.undo(); });
         if (data) applyState(data);
     }
 
     function redo() {
-        if (!state || state.finished || !state.redo) return;
+        if (!state || isWon() || !state.redo) return;
         const data = invoke(function (api) { return api.redo(); });
         if (data) applyState(data);
     }
@@ -680,19 +631,19 @@
             // WebView 的本地存储不可用时忽略即可。
         }
         els.sizeInput.value = String(size);
-        applyState(data, { resetClock: true, fit: true });
+        applyState(data, { fit: true });
     }
 
     function shuffleGame() {
         const data = invoke(function (api) { return api.shuffle(); });
         if (!data) return;
-        applyState(data, { resetClock: true, fit: true });
+        applyState(data, { fit: true });
     }
 
     function restartGame() {
         const data = invoke(function (api) { return api.restart(); });
         if (!data) return;
-        applyState(data, { resetClock: true, fit: true });
+        applyState(data, { fit: true });
     }
 
     function setSizeValue(value) {
@@ -898,6 +849,10 @@
         applyWindowState(next);
     }
 
-    window.klotskiApp = { boot: boot, updateWindowState: updateWindowState };
+    window.klotskiApp = {
+        boot: boot,
+        updateTimer: updateTimer,
+        updateWindowState: updateWindowState
+    };
     bindEvents();
 })();

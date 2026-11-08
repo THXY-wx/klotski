@@ -71,13 +71,24 @@ try {
     if ($LASTEXITCODE -ne 0) { throw '便携版生成失败。' }
 
     $portableExe = Join-Path $DistDir "$AppName\$AppName.exe"
-    $hash = (Get-FileHash -LiteralPath $portableExe -Algorithm SHA256).Hash.ToLower()
-    "$hash  $AppName/$AppName.exe" |
+    $portableZip = Join-Path $DistDir "$AppName-portable.zip"
+    $debugLog = Join-Path $DistDir "$AppName\debug.log"
+    if (Test-Path -LiteralPath $debugLog) {
+        Remove-Item -LiteralPath $debugLog -Force
+    }
+    if (Test-Path -LiteralPath $portableZip) {
+        Remove-Item -LiteralPath $portableZip -Force
+    }
+    Compress-Archive -Path (Join-Path $DistDir $AppName) -DestinationPath $portableZip -CompressionLevel Optimal -Force
+
+    $hash = (Get-FileHash -LiteralPath $portableZip -Algorithm SHA256).Hash.ToLower()
+    "$hash  $AppName-portable.zip" |
         Set-Content -LiteralPath (Join-Path $DistDir 'SHA256SUMS.txt') -Encoding UTF8
 
     Write-Host ''
     Write-Host '打包完成：'
-    Write-Host "  便携版：$portableExe"
+    Write-Host "  便携版目录：$DistDir\$AppName"
+    Write-Host "  便携版压缩包：$portableZip"
     Write-Host "  校验值：$DistDir\SHA256SUMS.txt"
 } finally {
     Pop-Location

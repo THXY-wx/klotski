@@ -55,7 +55,8 @@ powershell -ExecutionPolicy Bypass -File .\package-exe.ps1
 dist/
 ├── Klotski/
 │   └── Klotski.exe        # 便携版入口
-└── SHA256SUMS.txt         # 可执行文件校验值
+├── Klotski-portable.zip   # 便携版压缩包，便于分发
+└── SHA256SUMS.txt         # 便携版压缩包校验值
 ```
 
 运行时必须保留 `dist/Klotski` 整个文件夹，不能只复制 `Klotski.exe`。便携版已内置 Java 运行时和 JavaFX，目标电脑不需要额外安装 Java。可执行文件未进行代码签名，Windows 可能显示 SmartScreen“未知发布者”提示。
@@ -90,10 +91,13 @@ klotski/
     │   ├── WindowBridge.kt         # 全屏、无边框和退出控制
     │   ├── WindowBounds.kt         # 普通窗口位置/大小快照
     │   ├── Klotski.kt              # 不可变棋盘模型与移动规则
-    │   └── gamestate/
-    │       ├── GameState.kt        # 不可变游戏状态与状态转换
-    │       ├── MoveDirection.kt    # 数字块移动方向
-    │       └── Move.kt             # 一次移动及其反方向
+    │   ├── gamestate/
+    │   │   ├── GameState.kt        # 不可变游戏状态与状态转换
+    │   │   ├── MoveDirection.kt    # 数字块移动方向
+    │   │   └── Move.kt             # 一次移动及其反方向
+    │   └── session/
+    │       ├── GameSession.kt      # 游戏阶段、计时和会话控制
+    │       └── GamePhase.kt        # 游戏阶段枚举
     └── resources/com/thxy/
         ├── game.html               # 页面结构
         ├── game.css                # 界面样式
@@ -109,8 +113,9 @@ klotski/
 
 - `Klotski` 是不可变棋盘，每次有效移动都会返回新的 `Klotski`。
 - `GameState` 是不可变数据类，`newGame`、`move`、`undo`、`redo`、`restart`、`shuffle` 都采用不可变状态转换：接收旧状态，返回新状态，不修改输入（随机生成除外）。
-- `GameBridge` 只持有当前的 `GameState` 引用，并把状态序列化为 JSON。
-- Canvas 绘制、事件监听等 DOM 副作用仍然由 JavaScript 完成；游戏规则和状态管理采用函数式风格。
+- `GameSession` 持有当前 `GameState`，并负责游戏阶段和计时器：首次有效移动开始计时，完成时进入 `WON` 阶段并停止计时。
+- `GameBridge` 只把页面操作转发给 `GameSession`；状态 JSON 中包含 `phase`、`elapsedMillis` 和 `timerRunning`。
+- Canvas 绘制、事件监听等 DOM 副作用仍然由 JavaScript 完成；游戏规则、阶段和计时由 Kotlin 控制。
 
 ### 坐标与方向
 
@@ -132,6 +137,8 @@ klotski/
 ### WebView 通信与窗口控制
 
 - `GameBridge` 通过 JavaFX 的 `JSObject` 暴露给页面，JavaScript 调用 `start`、`move`、`undo` 等方法后收到 JSON 格式的棋盘状态。
+- Kotlin 计时器通过 `window.klotskiApp.updateTimer(...)` 主动推送时间；页面不再自行启动或停止计时，只负责显示。
+- 胜利面板和按钮禁用状态由 Kotlin 返回的 `phase` 驱动。
 - `WindowBridge` 负责普通全屏、无边框全屏、恢复普通窗口和退出应用；状态变化会主动回传给页面，保证按钮状态同步。
 - 无边框全屏使用独立的无装饰 `Stage`，切换时会保留同一个 `Scene`，因此游戏进度不会丢失。
 - 无边框窗口不设置置顶，其他应用切换到前台时可以正常显示在游戏窗口上方。

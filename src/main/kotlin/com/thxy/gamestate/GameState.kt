@@ -7,7 +7,7 @@ import kotlin.math.sqrt
  * 一局华容道的不可变状态。
  *
  * 所有状态转换函数都接收旧状态并返回新状态，不修改传入对象；只有
- * `GameBridge` 持有一个可变的当前状态引用。
+ * `GameSession` 持有一个可变的当前状态引用。
  *
  * @property size 棋盘边长。
  * @property board 当前棋盘。
@@ -24,29 +24,6 @@ internal data class GameState(
     val history: List<Move>,
     val redo: List<Move>
 ) {
-
-    /**
-     * 将当前状态序列化为 JSON。
-     *
-     * @return 供 WebView 使用的 JSON 字符串。
-     */
-    fun toJson(): String {
-        val cells = board.snapshot()
-        return buildString(cells.size * 4 + 128) {
-            append("{\"size\":").append(size)
-            append(",\"cells\":[")
-            cells.forEachIndexed { index, value ->
-                if (index > 0) append(',')
-                append(value)
-            }
-            append("],\"blank\":").append(cells.indexOf(0))
-            append(",\"moves\":").append(moves)
-            append(",\"finished\":").append(board.isFinish())
-            append(",\"undo\":").append(history.size)
-            append(",\"redo\":").append(redo.size)
-            append('}')
-        }
-    }
 
     companion object {
 

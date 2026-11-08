@@ -20,7 +20,7 @@ import netscape.javascript.JSObject
  */
 class KlotskiApp : Application() {
 
-    private val bridge = GameBridge()
+    private lateinit var bridge: GameBridge
     private lateinit var windowBridge: WindowBridge
 
     override fun start(stage: Stage) {
@@ -29,6 +29,16 @@ class KlotskiApp : Application() {
         }
         val engine = webView.engine
         engine.isJavaScriptEnabled = true
+
+        bridge = GameBridge { elapsedMillis ->
+            Platform.runLater {
+                runCatching {
+                    engine.executeScript(
+                        "window.klotskiApp && window.klotskiApp.updateTimer($elapsedMillis)"
+                    )
+                }
+            }
+        }
 
         val scene = Scene(webView, 1180.0, 780.0).apply {
             fill = Color.web("#06101d")
@@ -98,6 +108,10 @@ class KlotskiApp : Application() {
         } else {
             engine.load(page.toExternalForm())
         }
+    }
+
+    override fun stop() {
+        if (::bridge.isInitialized) bridge.dispose()
     }
 
     /**
