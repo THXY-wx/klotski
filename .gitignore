@@ -1,0 +1,11 @@
+target/
+out/
+dist/
+dist-debug/
+build-dist/
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.DS_Store

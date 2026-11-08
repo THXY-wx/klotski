@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>数字华容道 · Klotski</title>
+  <link rel="stylesheet" href="game.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">华</div>
+        <div class="brand-copy">
+          <h1>数字华容道</h1>
+          <p>KLOTSKI <span>·</span> 数字滑块</p>
+        </div>
+      </div>
+
+      <div class="size-picker">
+        <label class="size-field" for="sizeInput">
+          <span class="field-label">棋盘大小</span>
+          <span class="stepper">
+            <button id="sizeMinus" class="stepper-btn" type="button" aria-label="减小棋盘">−</button>
+            <input id="sizeInput" type="number" min="2" max="215" value="4" inputmode="numeric" aria-label="棋盘边长">
+            <button id="sizePlus" class="stepper-btn" type="button" aria-label="增大棋盘">+</button>
+          </span>
+        </label>
+        <span class="size-range" id="maxSizeLabel">2–215</span>
+        <button id="newGame" class="btn btn-primary" type="button">新游戏</button>
+      </div>
+
+      <div class="window-actions" aria-label="窗口控制">
+        <button id="fullscreenBtn" class="window-btn" type="button" disabled>全屏</button>
+        <button id="borderlessBtn" class="window-btn" type="button" disabled>无边框</button>
+        <button id="exitBtn" class="window-btn window-btn-danger" type="button">退出</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="board-panel" aria-label="华容道棋盘">
+        <div class="board-head">
+          <div class="status-line">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="statusText" aria-live="polite">点击空白格旁边的数字开始</span>
+          </div>
+          <div class="head-chips">
+            <span class="chip" id="sizeChip">4 × 4</span>
+            <span class="chip chip-timer" id="timer">00:00</span>
+          </div>
+        </div>
+
+        <div class="board-wrap" id="boardWrap">
+          <canvas id="boardCanvas" aria-label="数字华容道棋盘"></canvas>
+
+          <div class="overlay hidden" id="winOverlay">
+            <div class="win-card">
+              <div class="win-orbit" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="win-badge">完成</div>
+              <h2>拼好了！</h2>
+              <p class="win-summary">用时 <strong id="winTime">00:00</strong><span>·</span>共 <strong id="winMoves">0</strong> 步</p>
+              <div class="win-actions">
+                <button id="playAgain" class="btn btn-primary" type="button">再来一局</button>
+                <button id="winShuffle" class="btn" type="button">换个乱局</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="board-foot">
+          <span class="foot-hint">点击数字，或使用方向键移动</span>
+          <div class="zoom-controls" aria-label="棋盘缩放">
+            <button id="zoomOut" class="icon-btn" type="button" aria-label="缩小棋盘">−</button>
+            <span class="zoom-label" id="zoomLabel">100%</span>
+            <button id="zoomIn" class="icon-btn" type="button" aria-label="放大棋盘">+</button>
+            <button id="zoomFit" class="fit-btn" type="button">适应</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="side-panel">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">步数</span>
+            <strong id="moveCount">0</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">当前棋盘</span>
+            <strong id="sizeStat">4 × 4</strong>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <h3>操作</h3>
+          <span class="section-line" aria-hidden="true"></span>
+        </div>
+        <div class="action-grid">
+          <button id="undoBtn" class="btn btn-action" type="button" disabled>
+            <span>撤销</span><kbd>Ctrl Z</kbd>
+          </button>
+          <button id="redoBtn" class="btn btn-action" type="button" disabled>
+            <span>重做</span><kbd>Ctrl Y</kbd>
+          </button>
+          <button id="shuffleBtn" class="btn btn-action" type="button">
+            <span>重新打乱</span><span class="action-icon">↻</span>
+          </button>
+          <button id="restartBtn" class="btn btn-action" type="button">
+            <span>重新开始</span><span class="action-icon">↺</span>
+          </button>
+        </div>
+
+        <div class="section-head">
+          <h3>快速开始</h3>
+          <span class="section-line" aria-hidden="true"></span>
+        </div>
+        <div class="preset-row">
+          <button class="preset" type="button" data-size="2">2×2</button>
+          <button class="preset" type="button" data-size="3">3×3</button>
+          <button class="preset" type="button" data-size="4">4×4</button>
+          <button class="preset" type="button" data-size="5">5×5</button>
+          <button class="preset" type="button" data-size="6">6×6</button>
+        </div>
+
+        <div class="section-head">
+          <h3>玩法</h3>
+          <span class="section-line" aria-hidden="true"></span>
+        </div>
+        <ol class="help-list">
+          <li>数字按从左到右、从上到下的升序排列。</li>
+          <li>空白格旁边的数字可以滑入空白格。</li>
+          <li>把 0 移回右下角，所有数字归位即获胜。</li>
+          <li>棋盘最大支持 215 × 215，放大后可查看数字。</li>
+        </ol>
+
+        <div class="tip-card">
+          <span class="tip-mark">提示</span>
+          <p>大棋盘会自动适配窗口。使用右下角缩放按钮放大后，拖动画布查看局部。</p>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

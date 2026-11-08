@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>界面加载失败 · 数字华容道</title>
+  <style>
+    :root {
+      --bg: #06101d;
+      --card: #101c2f;
+      --line: rgba(148, 180, 220, 0.16);
+      --text: #eef5ff;
+      --muted: #9fb0c8;
+      --danger: #fb7185;
+      --accent: #5eead4;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--text);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(251, 113, 133, 0.12), transparent 34%),
+        radial-gradient(circle at 90% 100%, rgba(94, 234, 212, 0.1), transparent 34%),
+        var(--bg);
+    }
+
+    .card {
+      width: min(560px, 100%);
+      padding: 34px 36px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--card);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+    }
+
+    .mark {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 18px;
+      place-items: center;
+      border: 1px solid rgba(251, 113, 133, 0.38);
+      border-radius: 14px;
+      color: var(--danger);
+      font-size: 22px;
+      font-weight: 800;
+      background: rgba(251, 113, 133, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      letter-spacing: 0.02em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.8;
+      overflow-wrap: anywhere;
+    }
+
+    .hint {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .hint strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="mark">!</div>
+    <h1>界面加载失败</h1>
+    <p>{{MESSAGE}}</p>
+    <p class="hint">请关闭应用后重新启动。如果问题持续出现，请检查 <strong>src/main/resources/com/thxy</strong> 下的页面资源是否完整。</p>
+  </div>
+</body>
+</html>
